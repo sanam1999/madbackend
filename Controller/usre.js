@@ -1,5 +1,6 @@
 const User = require("../Model/user");
 const Post = require("../Model/Post");
+const Story = require("../Model/Story");
 const FoodPost = require("../Model/Foodpost");
 const Account  =  require("../Model/Account")
 
@@ -95,22 +96,6 @@ module.exports.login = async (req, res) => {
             error: err.message,
         });
     }
-};
-module.exports.logout = (req, res, next) => {
-    req.logOut((err) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({
-                success: false,
-                message: "Error in logout",
-                error: err.message,
-            });
-        }
-        return res.status(200).json({
-            success: true,
-            message: "You have successfully logged out",
-        });
-    });
 };
 module.exports.changepassword = async (req, res) => {
     const { username, currentPassword, newPassword } = req.body;
@@ -515,3 +500,319 @@ return res.status(200).json({
 
 
 }
+module.exports.getfood = async(req, res)=>{
+    try{
+        const foodpost = await FoodPost.find({}).sort({ createdAt: -1 }).populate("user");
+        const user = await User.findById(req.user._id)
+        console.log(user)
+
+        return res.status(200).json({
+            success: true,
+            message: "ok",
+            foodpost,
+            userHours : user.hours
+        });
+       
+        }catch(e){
+            console.log(e)
+            return res.status(200).json({
+                success: false,
+                message: "invalid user error",
+                data:null,
+                error:e
+            });
+        }
+        
+        
+}
+module.exports.volunteer = async(req, res)=>{
+    try{
+
+       
+       const foodpost = await FoodPost.findById(req.query.postid)
+
+       console.log(foodpost)
+        if(foodpost.poststaus != "Volunteer"){
+            return res.status(200).json({
+                success: false,
+                message: "This food has already been taken.",
+                data:null,
+            });
+        }
+        foodpost.poststaus = "Runnig"
+        foodpost.voluser = req.user._id
+        foodpost.save();
+        return res.status(200).json({
+            success: true,
+            message: "ok",
+            data:null,
+        });
+       
+        }catch(e){
+            console.log(e)
+            return res.status(200).json({
+                success: false,
+                message: "invalid user error",
+                data:null,
+                error:e
+            });
+        }
+        
+        
+}
+module.exports.activepost = async(req, res)=>{
+    try{
+const foodpost = await FoodPost.find({
+    voluser: req.query._id, 
+    poststaus: "Runnig"
+  }).populate('user')
+  console.log(foodpost)
+     return res.status(200).json({
+            success: true,
+            message: "ok",
+            data:foodpost,
+        });
+       
+        }catch(e){
+            console.log(e)
+            return res.status(200).json({
+                success: false,
+                message: "invalid user error",
+                data:null,
+                error:e
+            });
+        }
+        
+        
+}
+module.exports.endvol = async(req, res)=>{
+    try{
+
+ await FoodPost.findByIdAndUpdate(
+    req.body.endvol,
+    { poststaus: "Taken" },
+    
+    { new: true } 
+  );
+
+await User.findByIdAndUpdate(req.user._id, 
+    { $inc: { hours: 38 } },
+    { new: true } 
+);
+
+
+  
+     return res.status(200).json({
+            success: true,
+            message: "ok",
+            data:null,
+        });
+       
+        }catch(e){
+            console.log(e)
+            return res.status(200).json({
+                success: false,
+                message: "invalid user error",
+                data:null,
+                error:e
+            });
+        }
+        
+        
+}
+module.exports.addStory = async (req, res) => {
+    try {
+        let story = await Story.findOne({ user: req.user._id }); // Find story by user ID
+
+        if (!story) {
+            // Create new story document
+            story = new Story({
+                story: [{
+                    imgUri: `/uploads/${req.file.filename}`,
+                    caption: req.body.text
+                }],
+                user: req.user._id
+            });
+        } else {
+            // Add new story entry to the existing document
+            story.story.push({
+                imgUri: `/uploads/${req.file.filename}`,
+                caption: req.body.text
+            });
+        }
+
+        await story.save(); // Save the document after modification
+
+        return res.status(200).json({
+            success: true,
+            message: 'Post added successfully',
+        });
+    } catch (error) {
+        return res.status(200).json({
+            success: false,
+            message: 'Error creating post',
+            error: error.message,
+        });
+    }
+        
+        
+}
+module.exports.getpost = async(req, res)=>{
+    try{
+        const post = req.query.type == "user" ?  await Post.find({user:req.user._id}).populate('user') : await Post.find({}).populate('user') 
+        const food = req.query.type == "user" ?  await FoodPost.find({user:req.user._id}).populate('user') : await FoodPost.find({}).populate('user') 
+        let userData = null;
+
+if (req.query.type === "user") {
+    userData = await User.findById(req.user._id).select('hours');
+}
+
+const hours = userData ? userData.hours : null;
+
+
+
+        return res.status(200).json({
+            success: true,
+            message: "ok",
+            post,
+            food,
+             userHours : hours
+        });
+        }catch(e){
+            console.log(e)
+            return res.status(200).json({
+                success: false,
+                message: "invalid user error",
+                data:null,
+                error:e
+            });
+        }
+}
+module.exports.logout = async(req, res)=>{
+    try{
+        req.logOut((err) => {
+                    if (err) {
+                        return res.status(200).json({
+                            success: false,
+                            message: "user logout",
+                        })
+                    }
+                  
+                   return res.status(200).json({
+                    success: true,
+                    message: "user logout",
+                    data:null,
+                   
+                });
+                })
+        }catch(e){
+            console.log(e)
+            return res.status(200).json({
+                success: false,
+                message: "invalid user error",
+                data:null,
+                error:e
+            });
+        }
+}
+module.exports.donate = async (req, res) => {
+    try {
+        const { doname: donationRecipientId, donameamount } = req.body;
+
+        const donationAmount = parseInt(donameamount, 10);
+        if (isNaN(donationAmount) || donationAmount <= 0) {
+            return res.status(400).json({ error: "Invalid donation amount" });
+        }
+
+        // Find recipient post
+        const recipientPost = await Post.findById(donationRecipientId);
+        if (!recipientPost) {
+            return res.status(404).json({ success: false, message: "Recipient post not found" });
+        }
+
+        // Find recipient's account
+        let recipientAccount = await Account.findOne({ user: recipientPost.user });
+        if (!recipientAccount) {
+            return res.status(404).json({ success: false, message: "Recipient account not found" });
+        }
+
+        // Find donor's account
+        let donorAccount = await Account.findOne({ user: req.user._id });
+        if (!donorAccount) {
+            return res.status(404).json({ success: false, message: "Donor account not found" });
+        }
+
+        // Check for sufficient balance
+        if (donorAccount.balance < donationAmount) {
+            return res.status(400).json({ success: false, message: "Insufficient balance" });
+        }
+
+        // Deduct from donor and add to recipient
+        donorAccount.balance -= donationAmount;
+        recipientAccount.balance += donationAmount;
+
+        // Update transaction history
+        donorAccount.transactions.push({
+            type: 'withdrawal',
+            amount: donationAmount,
+            from: req.user._id,
+            to: recipientAccount.user
+        });
+        recipientAccount.transactions.push({
+            type: 'deposit',
+            amount: donationAmount,
+            from: req.user._id,
+            to: recipientAccount.user
+        });
+
+        await donorAccount.save();
+        await recipientAccount.save();
+
+        // Update total donations in the post
+        const updatedPost = await Post.findByIdAndUpdate(
+            donationRecipientId, 
+            { $inc: { totaldonate: donationAmount } }, 
+            { new: true }
+        );
+
+        if (!updatedPost) {
+            return res.status(200).json({
+                success: false,
+                message: "Failed to update donation post",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Donation successful",
+        });
+
+    } catch (error) {
+        console.error("Error processing donation:", error);
+        return res.status(200).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message
+        });
+    }
+};
+
+module.exports.getstory = async (req, res) => {
+    try {
+        let story  = await Story.find({}).populate('user')
+   console.log(story[0])
+        return res.status(200).json({
+            success: true,
+            message: "ok",
+            story
+        });
+
+    } catch (error) {
+        console.error("Error processing donation:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message
+        });
+    }
+};

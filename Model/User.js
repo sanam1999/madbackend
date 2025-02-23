@@ -9,8 +9,10 @@ const userSchema = new Schema({
     },
     profileImage:{
         type:String,
-        
-       
+    },
+    hours:{
+        type:Number,
+        default:0
     }
 }, { timestamps: true });
 

@@ -26,6 +26,10 @@ const FoodPostSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User',
     },
+    voluser:{
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+    },
     poststaus:{
         type:String,
         enum: ['Runnig', 'Teken','Volunteer'],

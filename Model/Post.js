@@ -13,6 +13,10 @@ const PostSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User',
     },
+    totaldonate:{
+        type:Number,
+        default:0
+    }
 }, { timestamps: true });
 
 
